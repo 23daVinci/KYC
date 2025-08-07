@@ -3,6 +3,7 @@ import io
 import os
 from PIL import Image
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from utils import load_config 
 
@@ -17,6 +18,17 @@ CONFIG = load_config()
 class DataSerializer:
     """
     Class to serialize image pairs into TFRecord format for training a signature matching model.
+    This class handles loading images, encoding them, and wrapping them into TensorFlow Example format.
+    It also reads image pairs and their labels from a CSV file.
+
+    Attributes:
+        None: This class does not have any instance attributes.
+    
+    Methods:
+        load_and_encod_images(img_path: str) -> tf.image.encode_png:
+            Loads an image from its path, converts it to grayscale, and standardizes it.
+        create_example(img1_bytes: tf.image.encode_png, img2_bytes: tf.image.encode_png, label) -> tf.train.Example:
+            Wraps an image pair into tf.train.Example.
     """
     def __init__(self):
         pass
@@ -122,9 +134,72 @@ class DataSerializer:
         return image_pair_list
         
 
-           
+
+
+
+class DataPreprocessor:
+    def __init__(self):
+        pass
+
+
+    def parse_example(self, example_proto):
+        """
+        Parses a single TFRecord example into image tensors and label.
+        Args:
+            example_proto: A serialized TFRecord example.   
+        Returns:
+            A tuple containing two image tensors and a label tensor.
+        """
+        feature_description = {
+            'image1': tf.io.FixedLenFeature([], tf.string),
+            'image2': tf.io.FixedLenFeature([], tf.string),
+            'label': tf.io.FixedLenFeature([], tf.int64),
+        }
+        try:
+            parsed = tf.io.parse_single_example(example_proto, feature_description)
+        except tf.errors.InvalidArgumentError as e:
+            raise ValueError(f"Failed to parse example: {e}")
+        
+        img1 = tf.image.decode_png(parsed['image1'], channels=1)
+        img2 = tf.image.decode_png(parsed['image2'], channels=1)
+
+        img1 = tf.image.convert_image_dtype(img1, tf.float32)
+        img2 = tf.image.convert_image_dtype(img2, tf.float32)
+
+        label = tf.cast(parsed['label'], tf.float32)
+        
+        return (img1, img2), label
+
+
+    def get_dataset(self, tfrecord_path: str, batch_size: int = 32) -> tf.data.Dataset:
+        """
+        Creates a TensorFlow dataset from a TFRecord file.
+        Args:
+            tfrecord_path (str): Path to the TFRecord file.
+            batch_size (int): Size of the batches to be returned by the dataset.
+        Returns:
+            tf.data.Dataset: A TensorFlow dataset ready for training.
+        """
+        try:
+            dataset = tf.data.TFRecordDataset(tfrecord_path)
+        except Exception as e:
+            raise FileNotFoundError(f"TFRecord file not found at {tfrecord_path}: {e}")
+        
+        dataset = dataset.map(self.parse_example, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset = dataset.shuffle(2048)
+        dataset = dataset.batch(batch_size)
+        #dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+        return dataset
+
+
+
 
 
 if __name__ == "__main__":
-    serializer = DataSerializer()
-    serializer.serialize('train')
+    #serializer = DataSerializer()
+    #serializer.serialize('train')
+    data_preprocessor = DataPreprocessor()
+    ds = data_preprocessor.get_dataset(CONFIG['data']['train_serialized_path'], batch_size=CONFIG['data']['batch_size'])
+
+    print(ds)
