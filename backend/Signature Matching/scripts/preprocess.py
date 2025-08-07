@@ -25,7 +25,7 @@ class DataSerializer:
         None: This class does not have any instance attributes.
     
     Methods:
-        load_and_encod_images(img_path: str) -> tf.image.encode_png:
+        load_and_encode_images(img_path: str) -> tf.image.encode_png:
             Loads an image from its path, converts it to grayscale, and standardizes it.
         create_example(img1_bytes: tf.image.encode_png, img2_bytes: tf.image.encode_png, label) -> tf.train.Example:
             Wraps an image pair into tf.train.Example.
@@ -34,7 +34,7 @@ class DataSerializer:
         pass
 
 
-    def load_and_encod_images(self, img_path: str) -> tf.image.encode_png:
+    def load_and_encode_images(self, img_path: str) -> tf.image.encode_png:
         """
         Loads and image from its path, converts it to grayscale, and standardises it.
 
@@ -88,8 +88,8 @@ class DataSerializer:
         with tf.io.TFRecordWriter('../data/train_pairs.tfrecord') as writer:
             try:
                 for img1_path, img2_path, label in image_pairs:
-                    img1_bytes = self.load_and_encod_images(img1_path)
-                    img2_bytes = self.load_and_encod_images(img2_path)
+                    img1_bytes = self.load_and_encode_images(img1_path)
+                    img2_bytes = self.load_and_encode_images(img2_path)
                     example = self.create_example(img1_bytes, img2_bytes, label)
                     writer.write(example.SerializeToString())
             except Exception as e:
