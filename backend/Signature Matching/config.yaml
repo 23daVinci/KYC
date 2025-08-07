@@ -6,7 +6,7 @@ project:
   device: "cpu"  # or "cuda"
 
 data:
-  dataset_name: IDCAR
+  dataset_name: IDCAR 2011
   train_dir: "../data/sign_data/train"
   #val_dir: "../data/sign_data/val"
   test_dir: "../data/sign_data/test"
