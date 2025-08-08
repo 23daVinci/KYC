@@ -4,6 +4,7 @@ import os
 from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
+import logging
 
 from utils import load_config 
 
@@ -11,6 +12,11 @@ from utils import load_config
 ############## Global Variables ##############
 
 CONFIG = load_config()
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(levelname)s - %(message)s',
+                   filename='logs/preprocess.log',
+                   filemode='w')
 
 ##############################################
 
@@ -45,10 +51,11 @@ class DataSerializer:
             Byte string representation of the image
         """
         image = Image.open(img_path).convert('L')  # convert to grayscale
-        image = image.resize((220, 155))       # standardize size
+        image = image.resize((CONFIG['data']['img_width'], CONFIG['data']['img_height']))       # standardize size
         # Convert to numpy and add channel dimension: [H, W] → [H, W, 1]
         image_array = tf.convert_to_tensor(image, dtype=tf.uint8)
         image_array = tf.expand_dims(image_array, axis=-1)  # Now shape is (155, 220, 1)
+        LOGGER.info(f"Image size after expanding dims: {image_array.shape}")
         return tf.image.encode_png(image_array)
     
 
